@@ -1,0 +1,67 @@
+name: Release
+
+env:
+  CONTAINER_IMAGE_NAME: "redis:latest"
+  ARTIFACTORY_NAMESPACE: "com/ab/abce"
+  ARTIFACTORY_HOST: "artifactory.sdlc.ctl.gcp.com"
+  ARTIFACTORY_BASE_URL: "https://artifactory.sdlc.gcp.com"
+  GCP_PROJECT: "regal-spark-464611-v3"
+  GKE_LOCATION: "europe-west3"
+  GKE_CLUSTER: "jedox-test-cluster"
+  NAMESPACE: dev
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "main"
+    paths:
+      - "Chart.yaml"
+      - "values.yaml"
+      - "templates/**"
+      - ".github/workflows/helmcicd.yaml"
+
+permissions:
+  contents: 'read'
+  id-token: 'write'
+
+jobs:
+  build:
+    name: Build & Push
+    runs-on: abc_docker
+    container:
+      image: artifactory.sdlc.gcp.com/dkr-all/com/ci-cd-helm-deployer:1.0.0
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Workload Identity Auth
+        uses: google-github-actions/auth@v1
+        with:
+          project_id: ${{ env.GCP_PROJECT }}
+          token_format: "access-token"
+          workload_identity_provider: ${{ secrets.DEFAULT_WIF_PROVIDER }}
+          service_account: ${{ fromJSON(secrets.PIPELINE_SERVICE_ACCOUNT_EMAILS)['dev/az-secrets'] }}
+
+      - name: Setup Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          version: '>363.0.0'
+          project_id: ${{ env.GCP_PROJECT }}
+
+      - name: Get GKE Credentials
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ env.GKE_CLUSTER }}
+          location: ${{ env.GKE_LOCATION }}
+          project_id: ${{ env.GCP_PROJECT }}
+
+      - name: Deploy via Helm
+        shell: bash
+        run: |
+          helm upgrade --install jedox-redis-dev . \
+            --namespace ${{ env.NAMESPACE }} \
+            --create-namespace \
+            --atomic \
+            --timeout 5m

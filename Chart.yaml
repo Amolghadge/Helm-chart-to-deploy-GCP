@@ -1,0 +1,17 @@
+apiVersion: v2
+name: jedox-redis
+description: A Helm chart for deploying Redis for the jedox application
+type: application
+version: 0.1.0
+appVersion: "7.2.5"
+home: https://redis.io/
+keywords:
+  - redis
+  - cache
+  - datastore
+sources:
+  - https://github.com/redis/redis
+maintainers:
+  - name: maintainer
+    email: maintainer@example.com
+

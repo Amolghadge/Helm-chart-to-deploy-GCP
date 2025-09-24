@@ -1,0 +1,25 @@
+{{- if .Values.configmap.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "jedox-redis.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "jedox-redis.name" . }}
+    helm.sh/chart: {{ include "jedox-redis.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- with .Values.configmap.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+data:
+{{- if .Values.configmap.data }}
+{{ toYaml .Values.configmap.data | indent 2 }}
+{{- else }}
+  redis.conf: |
+    # Example redis configuration options
+    # appendonly yes
+    # maxmemory 256mb
+{{- end }}
+{{- end }}
+
